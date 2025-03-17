@@ -69,6 +69,54 @@
             font-weight: 500;
             color: var(--chat--color-font);
         }
+        .n8n-chat-widget .new-conversation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 300px;
+        }
+        .n8n-chat-widget .welcome-text {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--chat--color-font);
+            margin-bottom: 24px;
+            line-height: 1.3;
+        }
+        .n8n-chat-widget .new-chat-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.3s;
+            font-weight: 500;
+            font-family: inherit;
+            margin-bottom: 12px;
+        }
+        .n8n-chat-widget .new-chat-btn:hover {
+            transform: scale(1.02);
+        }
+        .n8n-chat-widget .message-icon {
+            width: 20px;
+            height: 20px;
+        }
+        .n8n-chat-widget .response-text {
+            font-size: 14px;
+            color: var(--chat--color-font);
+            opacity: 0.7;
+            margin: 0;
+        }
         .n8n-chat-widget .chat-interface {
             display: none;
             flex-direction: column;
@@ -216,7 +264,7 @@
             welcomeText: '',
             responseTimeText: '',
             poweredBy: {
-                text: 'Powered Penn Mill Automation',
+                text: 'Powered by Penn Mill Automation',
                 link: 'https://promohuntersx.com/'
             }
         },
@@ -256,7 +304,25 @@
     const chatContainer = document.createElement('div');
     chatContainer.className = `chat-container${config.style.position === 'left' ? ' position-left' : ''}`;
     
-    // Only include the chat interface HTML (remove the new conversation markup)
+    // Combined HTML: new conversation block + chat interface block
+    const newConversationHTML = `
+        <div class="brand-header">
+            <img src="${config.branding.logo}" alt="${config.branding.name}">
+            <span>${config.branding.name}</span>
+            <button class="close-button">×</button>
+        </div>
+        <div class="new-conversation">
+            <h2 class="welcome-text">${config.branding.welcomeText}</h2>
+            <button class="new-chat-btn">
+                <svg class="message-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
+                </svg>
+                Send us a message
+            </button>
+            <p class="response-text">${config.branding.responseTimeText}</p>
+        </div>
+    `;
+
     const chatInterfaceHTML = `
         <div class="chat-interface">
             <div class="brand-header">
@@ -275,7 +341,7 @@
         </div>
     `;
     
-    chatContainer.innerHTML = chatInterfaceHTML;
+    chatContainer.innerHTML = newConversationHTML + chatInterfaceHTML;
     
     const toggleButton = document.createElement('button');
     toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
@@ -288,7 +354,8 @@
     widgetContainer.appendChild(toggleButton);
     document.body.appendChild(widgetContainer);
 
-    // Get references from the chat interface
+    // References for both conversation parts
+    const newChatBtn = chatContainer.querySelector('.new-chat-btn');
     const chatInterface = chatContainer.querySelector('.chat-interface');
     const messagesContainer = chatContainer.querySelector('.chat-messages');
     const textarea = chatContainer.querySelector('textarea');
@@ -304,22 +371,23 @@
             action: "loadPreviousSession",
             sessionId: currentSessionId,
             route: config.webhook.route,
-            metadata: {
-                userId: ""
-            }
+            metadata: { userId: "" }
         }];
 
         try {
             const response = await fetch(config.webhook.url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-
             const responseData = await response.json();
-            // (No need to hide any elements since only the chat interface is used)
+
+            // Hide the new conversation block and show the chat interface
+            const newConvBlock = chatContainer.querySelector('.new-conversation');
+            if (newConvBlock) newConvBlock.style.display = 'none';
+            // Hide the brand header from the new conversation block only
+            const firstBrandHeader = chatContainer.querySelector('.new-conversation + .brand-header');
+            if (firstBrandHeader) firstBrandHeader.style.display = 'none';
             chatInterface.classList.add('active');
 
             const botMessageDiv = document.createElement('div');
@@ -338,9 +406,7 @@
             sessionId: currentSessionId,
             route: config.webhook.route,
             chatInput: message,
-            metadata: {
-                userId: ""
-            }
+            metadata: { userId: "" }
         };
 
         const userMessageDiv = document.createElement('div');
@@ -352,14 +418,10 @@
         try {
             const response = await fetch(config.webhook.url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(messageData)
             });
-            
             const data = await response.json();
-            
             const botMessageDiv = document.createElement('div');
             botMessageDiv.className = 'chat-message bot';
             botMessageDiv.textContent = Array.isArray(data) ? data[0].output : data.output;
@@ -369,8 +431,8 @@
             console.error('Error:', error);
         }
     }
-    
-    // Set up send button and textarea events
+
+    // Event listeners for sending messages
     sendButton.addEventListener('click', () => {
         const message = textarea.value.trim();
         if (message) {
@@ -378,7 +440,6 @@
             textarea.value = '';
         }
     });
-    
     textarea.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -390,11 +451,12 @@
         }
     });
     
+    // Toggle button to open/close the chat
     toggleButton.addEventListener('click', () => {
         chatContainer.classList.toggle('open');
     });
 
-    // Add close button handler(s)
+    // Close button(s) event
     const closeButtons = chatContainer.querySelectorAll('.close-button');
     closeButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -402,8 +464,7 @@
         });
     });
 
-    // Immediately open the chat widget and start the conversation
+    // Automatically open the chat and start the conversation
     chatContainer.classList.add('open');
-    chatInterface.classList.add('active');
     startNewConversation();
 })();
