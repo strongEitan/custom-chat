@@ -271,6 +271,17 @@
         .n8n-chat-widget .chat-footer a:hover {
             opacity: 1;
         }
+        
+        /* Animation for the chat toggle button */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .n8n-chat-widget .chat-toggle.animate {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
     `;
 
     // Load Geist font
@@ -295,8 +306,9 @@
             name: '',
             welcomeText: '',
             responseTimeText: '',
+            initialMessage: 'Hi 👋, how can we help?',
             poweredBy: {
-                text: 'Powered Penn Mill Automation 1',
+                text: 'Powered by Penn Mill Automation 1',
                 link: 'https://promohuntersx.com/'
             }
         },
@@ -348,7 +360,7 @@
                 <svg class="message-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
                 </svg>
-                Start a chat or Schedule a meeting
+                Send us a message
             </button>
             <p class="response-text">${config.branding.responseTimeText}</p>
         </div>
@@ -375,7 +387,7 @@
     chatContainer.innerHTML = newConversationHTML + chatInterfaceHTML;
     
     const toggleButton = document.createElement('button');
-    toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''}`;
+    toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''} animate`;
     toggleButton.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path d="M12 2C6.477 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2.5 21.5l4.5-.838A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.476 0-2.886-.313-4.156-.878l-3.156.586.586-3.156A7.962 7.962 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"/>
@@ -397,6 +409,17 @@
 
     async function startNewConversation() {
         currentSessionId = generateUUID();
+        chatContainer.querySelector('.brand-header').style.display = 'none';
+        chatContainer.querySelector('.new-conversation').style.display = 'none';
+        chatInterface.classList.add('active');
+
+        // Display the initial welcome message immediately
+        const initialBotMessageDiv = document.createElement('div');
+        initialBotMessageDiv.className = 'chat-message bot';
+        initialBotMessageDiv.textContent = config.branding.initialMessage || 'Hi 👋, how can we help?';
+        messagesContainer.appendChild(initialBotMessageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
         const data = [{
             action: "loadPreviousSession",
             sessionId: currentSessionId,
@@ -406,6 +429,7 @@
             }
         }];
 
+        // Only make the API call if needed (optional - can be removed if you always want to make the call)
         try {
             const response = await fetch(config.webhook.url, {
                 method: 'POST',
@@ -415,16 +439,14 @@
                 body: JSON.stringify(data)
             });
 
+            // If you want to replace the initial message with the response from the API
+            // Uncomment these lines:
+            /*
             const responseData = await response.json();
-            chatContainer.querySelector('.brand-header').style.display = 'none';
-            chatContainer.querySelector('.new-conversation').style.display = 'none';
-            chatInterface.classList.add('active');
-
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
-            messagesContainer.appendChild(botMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            if (responseData && (Array.isArray(responseData) ? responseData[0].output : responseData.output)) {
+                initialBotMessageDiv.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
+            }
+            */
         } catch (error) {
             console.error('Error:', error);
         }
@@ -468,7 +490,21 @@
         }
     }
 
+    // Show chat interface with initial message on button click
     newChatBtn.addEventListener('click', startNewConversation);
+    
+    // Show chat interface with initial message when chat toggle button is clicked
+    toggleButton.addEventListener('click', () => {
+        chatContainer.classList.toggle('open');
+        
+        // Start new conversation if it's the first time opening
+        if (chatContainer.classList.contains('open') && !currentSessionId) {
+            startNewConversation();
+        }
+        
+        // Stop animation once clicked
+        toggleButton.classList.remove('animate');
+    });
     
     sendButton.addEventListener('click', () => {
         const message = textarea.value.trim();
@@ -488,16 +524,15 @@
             }
         }
     });
-    
-    toggleButton.addEventListener('click', () => {
-        chatContainer.classList.toggle('open');
-    });
 
     // Add close button handlers
     const closeButtons = chatContainer.querySelectorAll('.close-button');
     closeButtons.forEach(button => {
         button.addEventListener('click', () => {
             chatContainer.classList.remove('open');
+            
+            // Restart animation when chat is closed
+            toggleButton.classList.add('animate');
         });
     });
 })();
