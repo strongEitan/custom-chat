@@ -304,9 +304,7 @@
         branding: {
             logo: '',
             name: '',
-            welcomeText: '',
-            responseTimeText: '',
-            initialMessage: ''
+            initialMessage: 'Hi 👋, how can we help?'
         },
         style: {
             primaryColor: '',
@@ -316,10 +314,6 @@
             fontColor: '#333333'
         }
     };
-
-    // Hard-coded footer - cannot be changed by clients
-    const poweredByText = 'Powered by Penn Mill Automation 2';
-    const poweredByLink = 'https://promohuntersx.com/';
 
     // Merge user config with defaults
     const config = window.ChatWidgetConfig ? 
@@ -348,24 +342,6 @@
     const chatContainer = document.createElement('div');
     chatContainer.className = `chat-container${config.style.position === 'left' ? ' position-left' : ''}`;
     
-    const newConversationHTML = `
-        <div class="brand-header">
-            <img src="${config.branding.logo}" alt="${config.branding.name}">
-            <span>${config.branding.name}</span>
-            <button class="close-button">×</button>
-        </div>
-        <div class="new-conversation">
-            <h2 class="welcome-text">${config.branding.welcomeText}</h2>
-            <button class="new-chat-btn">
-                <svg class="message-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
-                </svg>
-                Send us a message
-            </button>
-            <p class="response-text">${config.branding.responseTimeText}</p>
-        </div>
-    `;
-
     const chatInterfaceHTML = `
         <div class="chat-interface">
             <div class="brand-header">
@@ -379,12 +355,12 @@
                 <button type="submit">Send</button>
             </div>
             <div class="chat-footer">
-                <a href="${poweredByLink}" target="_blank">${poweredByText}</a>
+                <a href="https://promohuntersx.com/" target="_blank">Powered by Penn Mill Automation 1</a>
             </div>
         </div>
     `;
     
-    chatContainer.innerHTML = newConversationHTML + chatInterfaceHTML;
+    chatContainer.innerHTML = chatInterfaceHTML;
     
     const toggleButton = document.createElement('button');
     toggleButton.className = `chat-toggle${config.style.position === 'left' ? ' position-left' : ''} animate`;
@@ -397,7 +373,6 @@
     widgetContainer.appendChild(toggleButton);
     document.body.appendChild(widgetContainer);
 
-    const newChatBtn = chatContainer.querySelector('.new-chat-btn');
     const chatInterface = chatContainer.querySelector('.chat-interface');
     const messagesContainer = chatContainer.querySelector('.chat-messages');
     const textarea = chatContainer.querySelector('textarea');
@@ -409,8 +384,6 @@
 
     async function startNewConversation() {
         currentSessionId = generateUUID();
-        chatContainer.querySelector('.brand-header').style.display = 'none';
-        chatContainer.querySelector('.new-conversation').style.display = 'none';
         chatInterface.classList.add('active');
 
         // Display the initial welcome message immediately
@@ -430,22 +403,13 @@
         }];
 
         try {
-            const response = await fetch(config.webhook.url, {
+            await fetch(config.webhook.url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
             });
-
-            // If you want to replace the initial message with the response from the API
-            // Uncomment these lines:
-            /*
-            const responseData = await response.json();
-            if (responseData && (Array.isArray(responseData) ? responseData[0].output : responseData.output)) {
-                initialBotMessageDiv.textContent = Array.isArray(responseData) ? responseData[0].output : responseData.output;
-            }
-            */
         } catch (error) {
             console.error('Error:', error);
         }
@@ -488,9 +452,6 @@
             console.error('Error:', error);
         }
     }
-
-    // Show chat interface with initial message on button click
-    newChatBtn.addEventListener('click', startNewConversation);
     
     // Show chat interface with initial message when chat toggle button is clicked
     toggleButton.addEventListener('click', () => {
