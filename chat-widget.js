@@ -306,7 +306,7 @@
             name: '',
             welcomeText: '',
             responseTimeText: '',
-            initialMessage: 'Hi 👋, how can we help?'
+            initialMessage: ''
         },
         style: {
             primaryColor: '',
@@ -317,11 +317,9 @@
         }
     };
 
-    // Hard-coded "Powered by" section that clients cannot change
-    const poweredBy = {
-        text: 'Powered by Penn Mill Automation',
-        link: 'https://promohuntersx.com/'
-    };
+    // Hard-coded footer - cannot be changed by clients
+    const poweredByText = 'Powered by Penn Mill Automation 2';
+    const poweredByLink = 'https://promohuntersx.com/';
 
     // Merge user config with defaults
     const config = window.ChatWidgetConfig ? 
@@ -381,7 +379,7 @@
                 <button type="submit">Send</button>
             </div>
             <div class="chat-footer">
-                <a href="${poweredBy.link}" target="_blank">${poweredBy.text}</a>
+                <a href="${poweredByLink}" target="_blank">${poweredByText}</a>
             </div>
         </div>
     `;
@@ -418,14 +416,7 @@
         // Display the initial welcome message immediately
         const initialBotMessageDiv = document.createElement('div');
         initialBotMessageDiv.className = 'chat-message bot';
-        
-        // Make sure we get the full initial message text, with proper fallback
-        let initialMessage = 'Hi 👋, how can we help?';
-        if (config.branding && config.branding.initialMessage) {
-            initialMessage = config.branding.initialMessage;
-        }
-        
-        initialBotMessageDiv.textContent = initialMessage;
+        initialBotMessageDiv.textContent = config.branding.initialMessage || 'Hi 👋, how can we help?';
         messagesContainer.appendChild(initialBotMessageDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
@@ -438,7 +429,6 @@
             }
         }];
 
-        // Only make the API call if needed (optional - can be removed if you always want to make the call)
         try {
             const response = await fetch(config.webhook.url, {
                 method: 'POST',
